@@ -129,6 +129,9 @@ container_script() {
 #!/bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
+# не удалять скачанные .deb — /var/cache/apt/archives примонтирован с хоста
+rm -f /etc/apt/apt.conf.d/docker-clean
+echo 'APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/99keep-cache
 apt-get update
 apt-get install -y linux-packaging-snippets
 cd /buildd/sources

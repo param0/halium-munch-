@@ -38,14 +38,32 @@ engine() {
     fi
 }
 
+check_podman_rootless() {
+    # rootless podman требует диапазонов subuid/subgid для пользователя
+    local user uid
+    user="$(id -un)"; uid="$(id -u)"
+    [ "$uid" -eq 0 ] && return 0
+    if command -v getsubids >/dev/null; then
+        getsubids "$user" >/dev/null 2>&1 && return 0
+    elif grep -qsE "^($user|$uid):" /etc/subuid && grep -qsE "^($user|$uid):" /etc/subgid; then
+        return 0
+    fi
+    die "Rootless podman не настроен: нет subuid/subgid для '$user'.
+Выполните один раз:
+    sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $user
+    podman system migrate
+и перезапустите сборку. Либо используйте docker: CONTAINER_ENGINE=docker $0 …"
+}
+
 check_deps() {
     local missing=()
     for tool in git curl; do
         command -v "$tool" >/dev/null || missing+=("$tool")
     done
     [ ${#missing[@]} -eq 0 ] || die "Не хватает утилит: ${missing[*]}"
-    engine >/dev/null
-    log "Зависимости на месте (контейнеры: $(engine))"
+    local eng; eng="$(engine)"
+    [ "$eng" = podman ] && check_podman_rootless
+    log "Зависимости на месте (контейнеры: $eng)"
 }
 
 # --- Стадия: клонирование ядра ------------------------------------------------

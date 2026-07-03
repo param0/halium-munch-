@@ -68,6 +68,17 @@
 - Собрать **adaptation-пакеты** устройства (udev-правила из `/vendor/etc/ueventd*.rc`, настройки сенсоров, аудио и т.д.) и, при желании, собственный fastboot-flashable rootfs через [droidian-build-tools](https://github.com/droidian-releng/droidian-build-tools) — см. [rootfs-creation](https://github.com/droidian/porting-guide/blob/master/rootfs-creation.md).
 - Закоммитить каталоги `debian/` и `droidian/` в ветку `droidian` дерева ядра (`work/kernel`) — так делают все официальные устройства Droidian.
 
+## Известные проблемы окружения
+
+**Podman: `no subuid ranges found for user … in /etc/subuid`** — на машине не настроен rootless-режим podman. Однократно выполните:
+
+```bash
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
+podman system migrate
+```
+
+и перезапустите сборку. Альтернатива — использовать docker: `CONTAINER_ENGINE=docker ./build.sh all`.
+
 ## Полезные ссылки
 
 - Порт-гайд: https://github.com/droidian/porting-guide (зеркало: https://docs.droidian.org)

@@ -97,4 +97,7 @@ DEB_BUILD_ON = amd64
 DEB_BUILD_FOR = arm64
 
 KERNEL_ARCH = arm64
-KERNEL_BUILD_TARGET = Image.gz
+# ВАЖНО: сырое несжатое Image, как у стока/LineageOS для sm8250.
+# ARM64-ядро само себя не распаковывает, а ABL munch не разворачивает
+# gzip — с Image.gz устройство не подаёт признаков жизни вообще.
+KERNEL_BUILD_TARGET = Image

@@ -186,7 +186,12 @@ do_artifacts() {
             for d in /buildd/linux-bootimage-*.deb; do
                 rm -rf /tmp/x && mkdir /tmp/x
                 dpkg-deb -x "$d" /tmp/x
-                find /tmp/x -name "*.img" -exec cp -v {} /out/ \;
+                # Внутри deb образы называются boot.img-<версия>, vbmeta.img-<версия>
+                # и т.п. — убираем суффикс версии при копировании в /out.
+                find /tmp/x -type f \( -name "*.img" -o -name "*.img-*" \) | while read -r f; do
+                    out="$(basename "$f" | sed -E "s/\.img-.*/.img/")"
+                    cp -v "$f" "/out/$out"
+                done
             done'
     log "Артефакты в $OUT_DIR:"
     ls -lh "$OUT_DIR"

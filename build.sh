@@ -120,6 +120,18 @@ do_setup() {
     fi
     cp -v "$ROOT_DIR"/droidian/*.config "$KERNEL_DIR/droidian/"
 
+    # Патчи исходников ядра (например, фиксы урезанного дампа MiCode)
+    local p
+    for p in "$ROOT_DIR"/patches/*.patch; do
+        [ -e "$p" ] || continue
+        if git -C "$KERNEL_DIR" apply --reverse --check "$p" 2>/dev/null; then
+            log "Патч уже применён: $(basename "$p")"
+        else
+            log "Применяю патч: $(basename "$p")"
+            git -C "$KERNEL_DIR" apply "$p"
+        fi
+    done
+
     log "Пакетирование готово: $KERNEL_DIR/debian, $KERNEL_DIR/droidian"
 }
 

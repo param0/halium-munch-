@@ -40,6 +40,7 @@
 | `config.env` | репозиторий/ветка ядра, defconfig, образ контейнера, версия rootfs |
 | `templates/kernel-info.mk.in` | параметры boot.img (header v3, cmdline, SPL), тулчейн (clang 12.0-r416183b) |
 | `droidian/munch.config` | девайсовый kconfig-фрагмент (LVM/device-mapper, systemd и т.п.) |
+| `patches/*.patch` | патчи исходников ядра, применяются на стадии `setup` (фиксы урезанного дампа MiCode) |
 
 Версия ядра (`KERNEL_BASE_VERSION`) определяется автоматически из `Makefile` ядра на стадии `setup`.
 

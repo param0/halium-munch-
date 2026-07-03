@@ -1,0 +1,6 @@
+work/
+out/
+*.zip
+*.deb
+*.img
+*.part

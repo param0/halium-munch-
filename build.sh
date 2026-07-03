@@ -99,9 +99,11 @@ do_setup() {
         warn "Defconfig '$KERNEL_DEFCONFIG' не найден в arch/arm64/configs/ — проверьте KERNEL_DEFCONFIG в config.env"
     fi
 
-    # debian/ — скелет пакетирования по официальному гайду Droidian
+    # debian/ — скелет пакетирования по официальному гайду Droidian.
+    # debian/compat НЕ создаём: свежий linux-packaging-snippets объявляет
+    # compat через debhelper-compat в control, дубль — ошибка сборки.
     mkdir -p "$KERNEL_DIR/debian/source"
-    echo 13 > "$KERNEL_DIR/debian/compat"
+    rm -f "$KERNEL_DIR/debian/compat"
     echo "3.0 (native)" > "$KERNEL_DIR/debian/source/format"
     install -m 0755 "$ROOT_DIR/templates/rules" "$KERNEL_DIR/debian/rules"
     sed -e "s|@KERNEL_BASE_VERSION@|$kver|g" \

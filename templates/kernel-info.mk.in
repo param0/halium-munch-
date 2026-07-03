@@ -89,7 +89,9 @@ BUILD_CC = clang
 CLANG_VERSION = 12.0-r416183b
 BUILD_PATH = /usr/lib/llvm-android-$(CLANG_VERSION)/bin
 
-DEB_TOOLCHAIN = device-tree-compiler, linux-initramfs-halium-generic:arm64, binutils-aarch64-linux-gnu, clang-android-$(CLANG_VERSION), gcc-4.9-aarch64-linux-android, g++-4.9-aarch64-linux-android, libgcc-4.9-dev-aarch64-linux-android-cross
+# clang-android-$(CLANG_VERSION) сюда добавлять не нужно —
+# kernel-snippet.mk добавляет его сам на основе CLANG_VERSION.
+DEB_TOOLCHAIN = device-tree-compiler, linux-initramfs-halium-generic:arm64, binutils-aarch64-linux-gnu, gcc-4.9-aarch64-linux-android, g++-4.9-aarch64-linux-android, libgcc-4.9-dev-aarch64-linux-android-cross
 
 DEB_BUILD_ON = amd64
 DEB_BUILD_FOR = arm64

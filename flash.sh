@@ -35,14 +35,19 @@ flash_boot() {
     fastboot flash boot "$boot"
 
     if [ -f "$OUT_DIR/vbmeta.img" ]; then
-        log "Прошиваю vbmeta с отключением верификации…"
-        fastboot --disable-verity --disable-verification flash vbmeta "$OUT_DIR/vbmeta.img"
+        # Наш vbmeta.img собран avbtool'ом уже с отключённой верификацией
+        # (flags зашиты внутрь), поэтому прошиваем как есть. Рантайм-флаги
+        # --disable-verity/--disable-verification заставляют fastboot патчить
+        # образ и на нашем пустом vbmeta падают с "Failed to find AVB_MAGIC".
+        log "Прошиваю наш vbmeta (верификация уже отключена в образе)…"
+        fastboot flash vbmeta "$OUT_DIR/vbmeta.img" || \
+            fastboot --disable-verity --disable-verification flash vbmeta "$OUT_DIR/vbmeta.img"
     else
         log "vbmeta.img не найден в out/ — отключаю верификацию на стоковом vbmeta"
         fastboot --disable-verity --disable-verification flash vbmeta vbmeta.img 2>/dev/null || \
-            log "Пропустил vbmeta: при проблемах загрузки прошейте vbmeta с --disable-verity --disable-verification вручную"
+            log "Пропустил vbmeta: при проблемах загрузки прошейте vbmeta вручную"
     fi
-    log "Готово. fastboot reboot — первая загрузка может занять несколько минут."
+    log "Готово. Теперь: fastboot reboot — первая загрузка может занять несколько минут."
 }
 
 flash_rootfs() {

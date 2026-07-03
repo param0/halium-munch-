@@ -21,14 +21,17 @@
 - Linux x86_64, ~30 ГБ свободного места;
 - `git`, `curl`, `docker` **или** `podman`;
 - `adb`/`fastboot` для прошивки;
-- сам телефон: **разблокированный загрузчик**, прошитая **стоковая MIUI на Android 12/12.1** (Droidian использует стоковые `/vendor` и firmware!), кастомное recovery (TWRP/OrangeFox для munch).
+- сам телефон: **разблокированный загрузчик**, прошитая **стоковая MIUI на Android 12/12.1** (Droidian использует стоковые `/vendor` и firmware!), образ кастомного recovery для munch (TWRP/OrangeFox) — **файл `.img`, прошивать его не нужно** (см. ниже).
+
+> **У munch нет раздела recovery.** Это A/B-устройство, recovery встроен в ramdisk раздела `boot`. Поэтому `fastboot flash recovery …` даст `No such partition` — кастомное recovery на munch **загружают временно**: `fastboot boot orangefox.img`.
 
 ## Быстрый старт
 
 ```bash
-./build.sh all        # полный цикл сборки и скачивания
-./flash.sh rootfs     # телефон в recovery: format data + sideload rootfs/devtools
-./flash.sh boot       # телефон в fastboot: boot.img + vbmeta (verity off)
+./build.sh all                 # полный цикл сборки и скачивания
+./flash.sh recovery of.img     # телефон в fastboot: временно загрузить OrangeFox
+./flash.sh rootfs              # в recovery: format data + sideload rootfs/devtools
+./flash.sh boot                # телефон в fastboot: boot.img + vbmeta (verity off)
 ```
 
 Стадии можно запускать по отдельности (`clone`, `setup`, `build`, `artifacts`, `rootfs`), `./build.sh shell` даёт интерактивный shell в контейнере сборки, `./build.sh clean` всё удаляет.
@@ -50,7 +53,8 @@
 
 - **Boot header v3**: DTB загрузчик берёт из **стокового `vendor_boot`**, dtbo — из стокового раздела `dtbo`; поэтому в `boot.img` кладутся только ядро (`Image.gz`) и initramfs Droidian (`KERNEL_IMAGE_WITH_DTB = 0`). Стоковые `vendor_boot`/`dtbo` не трогаем.
 - **SPL / anti-rollback**: `KERNEL_BOOTIMAGE_PATCH_LEVEL` в `kernel-info.mk` должен быть не ниже security patch level прошитой MIUI.
-- **vbmeta**: пакет собирает пустой `vbmeta.img`; `flash.sh` шьёт его с `--disable-verity --disable-verification`.
+- **Нет раздела recovery**: A/B-устройство, recovery в ramdisk раздела `boot`. Кастомное recovery не прошивают, а грузят временно (`./flash.sh recovery of.img` → `fastboot boot`).
+- **vbmeta**: пакет собирает пустой `vbmeta.img` с уже отключённой верификацией (флаги зашиты `avbtool`); `flash.sh` шьёт его как есть (`fastboot flash vbmeta`, без рантайм-флагов — иначе новый fastboot падает с `Failed to find AVB_MAGIC`).
 - **cmdline**: базовый стоковый cmdline платформы kona + `androidboot.selinux=permissive buildvariant=userdebug droidian.lvm.prefer`. Сверьте со своим стоковым `boot.img` (`unpackbootimg`).
 
 ## Первая загрузка и отладка

@@ -2,15 +2,21 @@
 # =============================================================================
 # Прошивка Droidian на Xiaomi POCO F4 (munch)
 #
-#   ./flash.sh boot      # прошить boot.img + vbmeta (телефон в fastboot)
-#   ./flash.sh rootfs    # sideload rootfs- и devtools-zip (телефон в recovery)
-#   ./flash.sh all       # rootfs, затем boot
+#   ./flash.sh recovery <img>  # временно загрузить кастомное recovery (fastboot boot)
+#   ./flash.sh boot            # прошить boot.img + vbmeta (телефон в fastboot)
+#   ./flash.sh rootfs          # sideload rootfs- и devtools-zip (телефон в recovery)
+#   ./flash.sh all             # rootfs, затем boot
+#
+# ВАЖНО про munch: это A/B-устройство БЕЗ раздела recovery — recovery встроен
+# в ramdisk раздела boot. Кастомное recovery не прошивают (нет раздела
+# 'recovery'!), а временно загружают: fastboot boot orangefox.img.
 #
 # Предварительно (однократно):
 #   1. Разблокированный загрузчик (Mi Unlock).
 #   2. Прошитая стоковая MIUI на базе Android 12/12.1 (Droidian использует
 #      стоковый /vendor и firmware!).
-#   3. Кастомное recovery для munch (TWRP / OrangeFox).
+#   3. Образ кастомного recovery для munch (TWRP / OrangeFox) — файл .img,
+#      прошивать его никуда не нужно.
 # =============================================================================
 set -euo pipefail
 
@@ -21,6 +27,21 @@ log() { printf '\033[1;32m[flash]\033[0m %s\n' "$*"; }
 die() { printf '\033[1;31m[error]\033[0m %s\n' "$*" >&2; exit 1; }
 
 need() { command -v "$1" >/dev/null || die "Не найден $1 (пакет android-tools / platform-tools)"; }
+
+# munch не имеет раздела recovery — временно грузим образ через fastboot boot
+boot_recovery() {
+    need fastboot
+    local img="${1:-}"
+    [ -n "$img" ] || die "Укажите образ recovery: ./flash.sh recovery /путь/orangefox.img"
+    [ -f "$img" ] || die "Файл не найден: $img"
+    log "Временно загружаю recovery (телефон в fastboot: Vol- + Power)…"
+    if ! fastboot boot "$img"; then
+        die "fastboot boot отклонён прошивкой. Запасной путь: прошейте образ в boot
+временно (fastboot flash boot '$img'), загрузитесь в него, сделайте sideload,
+затем верните наш Droidian boot: ./flash.sh boot"
+    fi
+    log "Телефон грузится в recovery. Дальше: ./flash.sh rootfs"
+}
 
 flash_boot() {
     need fastboot
@@ -73,8 +94,9 @@ EON
 }
 
 case "${1:-}" in
-    boot)   flash_boot ;;
-    rootfs) flash_rootfs ;;
-    all)    flash_rootfs; flash_boot ;;
-    *)      sed -n '2,14p' "$0"; exit 1 ;;
+    recovery) boot_recovery "${2:-}" ;;
+    boot)     flash_boot ;;
+    rootfs)   flash_rootfs ;;
+    all)      flash_rootfs; flash_boot ;;
+    *)        sed -n '2,20p' "$0"; exit 1 ;;
 esac

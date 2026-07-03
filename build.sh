@@ -144,8 +144,11 @@ do_build() {
     mkdir -p "$PACKAGES_DIR"
     container_script
     local eng; eng="$(engine)"
+    # постоянный кэш apt: тулчейн (~460 МБ) не перекачивается на каждом запуске
+    mkdir -p "$WORK_DIR/apt-cache"
     log "Собираю ядро в контейнере $BUILD_IMAGE ($eng)…"
     "$eng" run --rm \
+        -v "$WORK_DIR/apt-cache:/var/cache/apt/archives" \
         -v "$PACKAGES_DIR:/buildd" \
         -v "$KERNEL_DIR:/buildd/sources" \
         "$BUILD_IMAGE" bash /buildd/container-build.sh
@@ -195,9 +198,10 @@ do_rootfs() {
 
 # --- Вспомогательные -------------------------------------------------------------
 do_shell() {
-    mkdir -p "$PACKAGES_DIR"
+    mkdir -p "$PACKAGES_DIR" "$WORK_DIR/apt-cache"
     local eng; eng="$(engine)"
     "$eng" run --rm -it \
+        -v "$WORK_DIR/apt-cache:/var/cache/apt/archives" \
         -v "$PACKAGES_DIR:/buildd" \
         -v "$KERNEL_DIR:/buildd/sources" \
         "$BUILD_IMAGE" bash

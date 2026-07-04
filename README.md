@@ -23,6 +23,8 @@
 - `adb`/`fastboot` для прошивки;
 - сам телефон: **разблокированный загрузчик**, прошитая **стоковая MIUI на Android 12/12.1** (Droidian использует стоковые `/vendor` и firmware!), образ кастомного recovery для munch (TWRP/OrangeFox) — **файл `.img`, прошивать его не нужно** (см. ниже).
 
+> **⚠️ База — ТОЛЬКО официальная MIUI на Android 12 (или 13 + rootfs api33).** Droidian работает поверх родного Android-vendor через Halium и поддерживает максимум Android 13 (api33). Кастомные ROM и порты (HyperOS 3, Android 14+) в качестве базы **не годятся**: initramfs не смонтирует их `/vendor` (новый EROFS), а libhybris несовместим с их HAL. Откат: официальный fastboot-ROM V13.x для munch, `flash_all.sh` / MiFlash, **ни в коем случае не вариант с lock** — залочит загрузчик.
+
 > **У munch нет раздела recovery.** Это A/B-устройство, recovery встроен в ramdisk раздела `boot`. Поэтому `fastboot flash recovery …` даст `No such partition` — кастомное recovery на munch **загружают временно**: `fastboot boot orangefox.img`.
 
 ## Быстрый старт

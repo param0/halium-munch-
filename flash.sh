@@ -43,14 +43,28 @@ boot_recovery() {
     log "Телефон грузится в recovery. Дальше: ./flash.sh rootfs"
 }
 
+# В boot.img (header v3) ядро лежит со смещения 4096. ABL munch не умеет
+# gzip: ядро обязано быть сырым Image, иначе телефон не подаст признаков жизни.
+check_boot_kernel_raw() {
+    local magic
+    magic="$(dd if="$1" bs=1 skip=4096 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')"
+    if [ "$magic" = "1f8b" ]; then
+        die "В $1 ядро сжато gzip (Image.gz) — munch с ним НЕ загрузится.
+Обновите репозиторий (git pull) и пересоберите:
+    ./build.sh setup && ./build.sh build && ./build.sh artifacts"
+    fi
+}
+
 flash_boot() {
     need fastboot
     local boot="$OUT_DIR/boot.img"
     [ -f "$boot" ] || die "Нет $boot — сначала ./build.sh artifacts"
+    check_boot_kernel_raw "$boot"
 
     log "Жду устройство в режиме fastboot (Vol- + Power)…"
     fastboot getvar product 2>&1 | grep -qi munch || \
         die "Устройство не похоже на munch — прерываюсь (fastboot getvar product)"
+    log "Активный слот: $(fastboot getvar current-slot 2>&1 | sed -n 's/current-slot: //p')"
 
     log "Прошиваю boot…"
     fastboot flash boot "$boot"
@@ -71,6 +85,21 @@ flash_boot() {
     log "Готово. Теперь: fastboot reboot — первая загрузка может занять несколько минут."
 }
 
+# adb sideload с повтором: прошлый раз devtools ушёл с "Total xfer: 0.00x"
+# (recovery не был в режиме sideload) и это осталось незамеченным.
+sideload_one() { # файл описание
+    local f="$1" what="$2" ans
+    while :; do
+        read -rp "Включите ADB Sideload в recovery (Advanced -> ADB Sideload -> свайп) и нажмите Enter [$what]… "
+        adb sideload "$f" || true
+        read -rp "Recovery показал успешную установку ($what)? Если 'Total xfer: 0.00x' — это ОТКАЗ. [y/n] " ans
+        case "$ans" in
+            [yY]*) break ;;
+            *)     log "Повторяем $what…" ;;
+        esac
+    done
+}
+
 flash_rootfs() {
     need adb
     local rootfs="$OUT_DIR/$DROIDIAN_ROOTFS_ZIP"
@@ -82,14 +111,8 @@ flash_rootfs() {
   1. Wipe -> Format Data (не просто wipe: нужен formаt, шифрование MIUI должно быть снято)
   2. Advanced -> ADB Sideload -> свайп для запуска
 EON
-    read -rp "Когда sideload запущен, нажмите Enter… "
-    log "Отправляю rootfs (~1.3 ГБ, это долго)…"
-    adb sideload "$rootfs"
-
-    if [ -f "$devtools" ]; then
-        read -rp "Снова включите ADB Sideload в recovery и нажмите Enter (devtools: ssh/telnet-отладка)… "
-        adb sideload "$devtools" || log "devtools не встали — не критично для первой загрузки"
-    fi
+    sideload_one "$rootfs" "rootfs (~1.3 ГБ, это долго)"
+    [ -f "$devtools" ] && sideload_one "$devtools" "devtools (ssh/telnet-отладка)"
     log "Rootfs прошит. Теперь перезагрузитесь в fastboot и выполните: ./flash.sh boot"
 }
 
